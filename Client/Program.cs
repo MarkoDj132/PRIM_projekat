@@ -20,6 +20,7 @@ namespace Client
 
             PrijaviSeUDP();
             PoveziSeTCP();
+            OdaberiServerIKanal();
 
             Console.WriteLine("\nPritisnite bilo koji taster za izlaz...");
             Console.ReadKey();
@@ -54,8 +55,32 @@ namespace Client
 
             byte[] bafer = new byte[1024];
             int primljeno = tcpSocket.Receive(bafer);
-            string odgovor = Encoding.UTF8.GetString(bafer, 0, primljeno);
-            Console.WriteLine($"Odgovor od servera: {odgovor}");
+            string listaServera = Encoding.UTF8.GetString(bafer, 0, primljeno);
+            Console.WriteLine($"Dostupni serveri: {listaServera}");
+        }
+
+        static void OdaberiServerIKanal()
+        {
+            Console.Write("Izaberite server: ");
+            string server = Console.ReadLine();
+
+            byte[] serverBytes = Encoding.UTF8.GetBytes(server);
+            tcpSocket.Send(serverBytes);
+
+            byte[] bafer = new byte[1024];
+            int primljeno = tcpSocket.Receive(bafer);
+            string listaKanala = Encoding.UTF8.GetString(bafer, 0, primljeno);
+            Console.WriteLine($"Dostupni kanali: {listaKanala}");
+
+            Console.Write("Izaberite kanal: ");
+            string kanal = Console.ReadLine();
+
+            byte[] kanalBytes = Encoding.UTF8.GetBytes(kanal);
+            tcpSocket.Send(kanalBytes);
+
+            primljeno = tcpSocket.Receive(bafer);
+            string potvrda = Encoding.UTF8.GetString(bafer, 0, primljeno);
+            Console.WriteLine($"Odgovor servera: {potvrda}");
         }
     }
 }
