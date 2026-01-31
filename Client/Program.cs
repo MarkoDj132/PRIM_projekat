@@ -87,6 +87,7 @@ namespace Client
             bytesRead = tcpSocket.Receive(recvData);
             string potvrda = Encoding.UTF8.GetString(recvData, 0, bytesRead);
             Console.WriteLine(potvrda);
+            SacuvajServerUDatoteku(server, nadimak);
         }
 
         static void PosaljiPoruku(string poruka)
@@ -99,6 +100,35 @@ namespace Client
             int bytesRead = tcpSocket.Receive(recvData);
             string potvrda = Encoding.UTF8.GetString(recvData, 0, bytesRead);
             Console.WriteLine(potvrda);
+        }
+
+        static void SacuvajServerUDatoteku(string nazivServera, string nadimak)
+        {
+            string putanja = "serveri_lista.txt";
+            Dictionary<string, string> serveri = new Dictionary<string, string>();
+
+            if (File.Exists(putanja))
+            {
+                string[] linije = File.ReadAllLines(putanja);
+                foreach (string linija in linije)
+                {
+                    string[] delovi = linija.Split('|');
+                    if (delovi.Length == 2)
+                    {
+                        serveri[delovi[0]] = delovi[1];
+                    }
+                }
+            }
+
+            serveri[nazivServera] = nadimak;
+
+            List<string> noviSadrzaj = new List<string>();
+            foreach (var par in serveri)
+            {
+                noviSadrzaj.Add($"{par.Key}|{par.Value}");
+            }
+
+            File.WriteAllLines(putanja, noviSadrzaj);
         }
 
         static string Sifruj(string tekst, string kljuc)
