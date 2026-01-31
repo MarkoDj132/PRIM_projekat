@@ -4,83 +4,139 @@ using System.Text;
 
 namespace Client
 {
-    internal class Program
+    class Program
     {
         static string nadimak;
         static int UDP_PORT = 5000;
         static int TCP_PORT;
         static Socket tcpSocket;
+        static string izabraniKanal;
 
         static void Main(string[] args)
         {
-            Console.WriteLine("KLIJENT POKRENUT");
-
-            Console.Write("Unesite vase ime/nadimak: ");
-            nadimak = Console.ReadLine();
-
             PrijaviSeUDP();
             PoveziSeTCP();
             OdaberiServerIKanal();
 
-            Console.WriteLine("\nPritisnite bilo koji taster za izlaz...");
-            Console.ReadKey();
+            while (true)
+            {
+                Console.Write("Unesi poruku (prazno za izlaz): ");
+                string poruka = Console.ReadLine();
+                if (poruka == "")
+                    break;
+                PosaljiPoruku(poruka);
+            }
+
             tcpSocket.Close();
         }
 
         static void PrijaviSeUDP()
         {
-            UdpClient udpClient = new UdpClient();
-            IPEndPoint serverEndPoint = new IPEndPoint(IPAddress.Loopback, UDP_PORT);
+            Console.Write("Unesi nadimak: ");
+            nadimak = Console.ReadLine();
 
-            byte[] porukaBytes = Encoding.UTF8.GetBytes("PRIJAVA");
-            udpClient.Send(porukaBytes, porukaBytes.Length, serverEndPoint);
+            Socket udpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            IPEndPoint serverEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), UDP_PORT);
 
-            IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
-            byte[] odgovor = udpClient.Receive(ref remoteEP);
-            string tcpPortString = Encoding.UTF8.GetString(odgovor);
-            TCP_PORT = int.Parse(tcpPortString);
+            byte[] sendData = Encoding.UTF8.GetBytes("PRIJAVA");
+            udpSocket.SendTo(sendData, serverEndPoint);
 
-            Console.WriteLine($"Primljen TCP port: {TCP_PORT}");
-            udpClient.Close();
+            byte[] recvData = new byte[256];
+            EndPoint remoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
+            udpSocket.ReceiveFrom(recvData, ref remoteEndPoint);
+
+            string odgovor = Encoding.UTF8.GetString(recvData).Trim('\0');
+            TCP_PORT = int.Parse(odgovor);
+
+            udpSocket.Close();
         }
 
         static void PoveziSeTCP()
         {
             tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            tcpSocket.Connect(IPAddress.Loopback, TCP_PORT);
-            Console.WriteLine("Povezan na TCP server");
+            IPEndPoint serverEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), TCP_PORT);
+            tcpSocket.Connect(serverEndPoint);
 
-            byte[] nadimakBytes = Encoding.UTF8.GetBytes(nadimak);
-            tcpSocket.Send(nadimakBytes);
+            byte[] sendData = Encoding.UTF8.GetBytes(nadimak);
+            tcpSocket.Send(sendData);
 
-            byte[] bafer = new byte[1024];
-            int primljeno = tcpSocket.Receive(bafer);
-            string listaServera = Encoding.UTF8.GetString(bafer, 0, primljeno);
-            Console.WriteLine($"Dostupni serveri: {listaServera}");
+            byte[] recvData = new byte[1024];
+            int bytesRead = tcpSocket.Receive(recvData);
+            string listaServera = Encoding.UTF8.GetString(recvData, 0, bytesRead);
+            Console.WriteLine("Dostupni serveri: " + listaServera);
         }
 
         static void OdaberiServerIKanal()
         {
-            Console.Write("Izaberite server: ");
+            Console.Write("Izaberi server: ");
             string server = Console.ReadLine();
+            byte[] sendData = Encoding.UTF8.GetBytes(server);
+            tcpSocket.Send(sendData);
 
-            byte[] serverBytes = Encoding.UTF8.GetBytes(server);
-            tcpSocket.Send(serverBytes);
+            byte[] recvData = new byte[1024];
+            int bytesRead = tcpSocket.Receive(recvData);
+            string listaKanala = Encoding.UTF8.GetString(recvData, 0, bytesRead);
+            Console.WriteLine("Dostupni kanali: " + listaKanala);
 
-            byte[] bafer = new byte[1024];
-            int primljeno = tcpSocket.Receive(bafer);
-            string listaKanala = Encoding.UTF8.GetString(bafer, 0, primljeno);
-            Console.WriteLine($"Dostupni kanali: {listaKanala}");
+            Console.Write("Izaberi kanal: ");
+            izabraniKanal = Console.ReadLine();
+            sendData = Encoding.UTF8.GetBytes(izabraniKanal);
+            tcpSocket.Send(sendData);
 
-            Console.Write("Izaberite kanal: ");
-            string kanal = Console.ReadLine();
+            recvData = new byte[256];
+            bytesRead = tcpSocket.Receive(recvData);
+            string potvrda = Encoding.UTF8.GetString(recvData, 0, bytesRead);
+            Console.WriteLine(potvrda);
+        }
 
-            byte[] kanalBytes = Encoding.UTF8.GetBytes(kanal);
-            tcpSocket.Send(kanalBytes);
+        static void PosaljiPoruku(string poruka)
+        {
+            string sifrovano = Sifruj(poruka, izabraniKanal);
+            byte[] sendData = Encoding.UTF8.GetBytes(sifrovano);
+            tcpSocket.Send(sendData);
 
-            primljeno = tcpSocket.Receive(bafer);
-            string potvrda = Encoding.UTF8.GetString(bafer, 0, primljeno);
-            Console.WriteLine($"Odgovor servera: {potvrda}");
+            byte[] recvData = new byte[256];
+            int bytesRead = tcpSocket.Receive(recvData);
+            string potvrda = Encoding.UTF8.GetString(recvData, 0, bytesRead);
+            Console.WriteLine(potvrda);
+        }
+
+        static string Sifruj(string tekst, string kljuc)
+        {
+            string prosireniKljuc = "";
+            for (int i = 0; i < tekst.Length; i++)
+            {
+                prosireniKljuc = prosireniKljuc + kljuc[i % kljuc.Length];
+            }
+
+            string rezultat = "";
+            for (int i = 0; i < tekst.Length; i++)
+            {
+                char c = tekst[i];
+                if (char.IsLetter(c))
+                {
+                    char baza;
+                    if (char.IsUpper(c))
+                        baza = 'A';
+                    else
+                        baza = 'a';
+
+                    char kljucChar;
+                    if (char.IsUpper(prosireniKljuc[i]))
+                        kljucChar = prosireniKljuc[i];
+                    else
+                        kljucChar = char.ToUpper(prosireniKljuc[i]);
+
+                    int pomak = kljucChar - 'A';
+                    int novi = (c - baza + pomak) % 26;
+                    rezultat = rezultat + (char)(baza + novi);
+                }
+                else
+                {
+                    rezultat = rezultat + c;
+                }
+            }
+            return rezultat;
         }
     }
 }
