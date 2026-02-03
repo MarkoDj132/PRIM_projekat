@@ -67,7 +67,6 @@ namespace Server
             {
                 byte[] primljenoPodataka = udpServer.Receive(ref remoteEP);
                 string poruka = Encoding.UTF8.GetString(primljenoPodataka);
-                //string poruka = DesifrujPoruku(sifrovanaPoruka, );
 
                 if (poruka == "PRIJAVA")
                 {
@@ -165,8 +164,12 @@ namespace Server
                 Console.WriteLine($"Primljena poruka od {info.Nadimak} na {info.IzabraniServer}:{info.IzabraniKanal} - {poruka}");
                 //Desifrovanje poruke
                 string desfPoruka = DesifrujPoruku(poruka, info.IzabraniKanal);
-                Console.WriteLine($"Desifrovana poruka: {poruka}");
-                
+                Console.WriteLine($"Desifrovana poruka: {desfPoruka}");
+                Poruka p = new Poruka(info.Nadimak, DateTime.Now.ToString(), desfPoruka);
+                serveri[info.IzabraniServer].Find(k => k.Naziv == info.IzabraniKanal)!.Poruke.Add(p);
+
+                Console.WriteLine($"[{p.VremenskiTrenutak}]-[{info.IzabraniServer}]:[{info.IzabraniKanal}]:[{desfPoruka}]-[{info.Nadimak}]");
+
                 byte[] odgovor = Encoding.UTF8.GetBytes("PRIMLJENO");
                 klijentSoket.Send(odgovor);
             }
@@ -210,11 +213,21 @@ namespace Server
             {
                 char s = poruka[i];
                 char k = kljuc[i % kljuc.Length];
-                int desifrovan = (s - k + 26) % 26;
-                rezultat += (char)(desifrovan + 'A');
-            }
 
-            return poruka;
+                if (char.IsLetter(s))
+                {
+                    char baza = char.IsUpper(s) ? 'A' : 'a';
+                    int sInt = s - baza;
+                    int kInt = char.ToUpper(k) - 'A';
+                    int desifrovan = (sInt - kInt + 26) % 26;
+                    rezultat += (char)(desifrovan + baza);
+                }
+                else
+                {
+                    rezultat += s; // Razmak, interpunkcija ostaju isti
+                }
+            }
+            return rezultat;
         }
     }
 }
