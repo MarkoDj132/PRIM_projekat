@@ -1,6 +1,8 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Text;
+
 
 namespace Client
 {
@@ -11,6 +13,7 @@ namespace Client
         static int TCP_PORT;
         static Socket tcpSocket;
         static string izabraniKanal;
+        static string trenutakPrestanka;
 
         static void Main(string[] args)
         {
@@ -27,6 +30,8 @@ namespace Client
                 PosaljiPoruku(poruka);
             }
 
+            //Cuvamo vremenski trenutak
+            SacuvajVremenskiTrenutak();
             tcpSocket.Close();
         }
 
@@ -167,6 +172,19 @@ namespace Client
                 }
             }
             return rezultat;
+        }
+
+        static void SacuvajVremenskiTrenutak()
+        {
+            string putanja = "serveri_lista.txt";
+            string vreme = "|_|/" + DateTimeOffset.UtcNow.ToString() + "/|";
+            if (File.Exists(putanja))
+            {
+                
+                File.AppendAllText(putanja, vreme);
+            }
+
+           
         }
     }
 }

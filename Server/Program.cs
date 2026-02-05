@@ -156,7 +156,10 @@ namespace Server
             else if (info.IzabraniKanal == "")
             {
                 info.IzabraniKanal = poruka;
-                byte[] odgovor = Encoding.UTF8.GetBytes("OK");
+                //klijent izabrao kanal, saljemo mu poruke u njemu.
+                string Odgovor = posaljiPoruke(info);
+
+                byte[] odgovor = Encoding.UTF8.GetBytes(Odgovor);
                 klijentSoket.Send(odgovor);
             }
             else
@@ -195,14 +198,67 @@ namespace Server
         {
             string rezultat = "";
             List<Kanal> kanali = serveri[nazivServera];
-            for (int i = 0; i < kanali.Count; i++)
+
+            //Sortiramo kanale
+
+            /*for (int i = 0; i < kanali.Count; i++)
             {
                 if (i > 0)
                 {
                     rezultat += ",";
                 }
                 rezultat += kanali[i].Naziv;
+            }*/
+
+            string putanja = "serveri_lista.txt";
+            string vreme = "";
+            if (File.Exists(putanja))
+            {
+                string[] linije = File.ReadAllLines(putanja);
+
+                foreach (string linija in linije)
+                {
+                    string[] delovi = linija.Split('/');
+                    if(delovi.Length >= 2)
+                    {
+                        vreme = delovi[2];
+                    }
+                }
             }
+
+            List<Kanal> kanaliSaNeprocitanim = new List<Kanal>();
+            List<Kanal> kanaliBezNeprocitanih = new List<Kanal>();
+            DateTime Vreme = DateTime.Parse(vreme);
+            for (int i=0; i < kanali.Count; i++)
+            {
+                DateTime t = DateTime.Parse(kanali[i].Poruke[^1].VremenskiTrenutak);
+                if(t > Vreme)
+                {
+                    kanaliSaNeprocitanim.Add(kanali[i]);
+                }
+                else
+                {
+                    kanaliBezNeprocitanih.Add(kanali[i]);
+                }
+            }
+
+            for (int i = 0; i < kanaliSaNeprocitanim.Count; i++)
+            {
+                if (i > 0)
+                {
+                    rezultat += ",";
+                }
+                rezultat += kanaliSaNeprocitanim[i].Naziv;
+            }
+            for (int i = 0; i < kanaliBezNeprocitanih.Count; i++)
+            {
+                if (i > 0)
+                {
+                    rezultat += ",";
+                }
+                rezultat += kanaliBezNeprocitanih[i].Naziv;
+            }
+
             return rezultat;
         }
 
@@ -228,6 +284,31 @@ namespace Server
                 }
             }
             return rezultat;
+        }
+
+        static string posaljiPoruke(KlijentInfo info)
+        {
+            string porukeUKanalu = "";
+            foreach (KeyValuePair<string, List<Kanal>> s in serveri)
+            {
+                if(info.IzabraniServer == s.Key )
+                {
+                    foreach(Kanal k in s.Value)
+                    {
+                        if(k.Naziv == info.IzabraniKanal)
+                        {
+                            foreach(Poruka p in k.Poruke)
+                            {
+                                porukeUKanalu += $"[{p.VremenskiTrenutak}]-[{p.Posiljalac}]: [{p.Sadrzaj}]\n";
+                            }
+                            break;
+                        }
+                        
+                    }
+                }
+            }
+
+            return porukeUKanalu;
         }
     }
 }
