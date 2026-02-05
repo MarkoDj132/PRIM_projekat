@@ -156,8 +156,13 @@ namespace Server
             else if (info.IzabraniKanal == "")
             {
                 info.IzabraniKanal = poruka;
-                //klijent izabrao kanal, saljemo mu poruke u njemu.
+                
                 string Odgovor = posaljiPoruke(info);
+
+                if (string.IsNullOrEmpty(Odgovor))
+                {
+                    Odgovor = "OK";
+                }
 
                 byte[] odgovor = Encoding.UTF8.GetBytes(Odgovor);
                 klijentSoket.Send(odgovor);
@@ -198,17 +203,6 @@ namespace Server
         {
             string rezultat = "";
             List<Kanal> kanali = serveri[nazivServera];
-
-            //Sortiramo kanale
-
-            /*for (int i = 0; i < kanali.Count; i++)
-            {
-                if (i > 0)
-                {
-                    rezultat += ",";
-                }
-                rezultat += kanali[i].Naziv;
-            }*/
 
             string putanja = "serveri_lista.txt";
             string vreme = "";

@@ -92,7 +92,18 @@ namespace Client
             recvData = new byte[4096];
             bytesRead = tcpSocket.Receive(recvData);
             string potvrda = Encoding.UTF8.GetString(recvData, 0, bytesRead);
-            Console.WriteLine(potvrda);
+
+            if (string.IsNullOrEmpty(potvrda) || potvrda.Trim() == "")
+            {
+                Console.WriteLine("\n--- Kanal je prazan ---");
+            }
+            else
+            {
+                Console.WriteLine("\n--- Poruke u kanalu ---");
+                Console.WriteLine(potvrda);
+            }
+
+            Console.WriteLine("\nMozete poceti slanje poruka (prazno za izlaz):\n");
             SacuvajServerUDatoteku(server, nadimak);
         }
 
