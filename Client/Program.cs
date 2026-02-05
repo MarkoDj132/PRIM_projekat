@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 
+#nullable disable
 
 namespace Client
 {
@@ -88,7 +89,7 @@ namespace Client
             sendData = Encoding.UTF8.GetBytes(izabraniKanal);
             tcpSocket.Send(sendData);
 
-            recvData = new byte[256];
+            recvData = new byte[4096];
             bytesRead = tcpSocket.Receive(recvData);
             string potvrda = Encoding.UTF8.GetString(recvData, 0, bytesRead);
             Console.WriteLine(potvrda);
@@ -175,16 +176,13 @@ namespace Client
         }
 
         static void SacuvajVremenskiTrenutak()
-        {
-            string putanja = "serveri_lista.txt";
-            string vreme = "|_|/" + DateTimeOffset.UtcNow.ToString() + "/|";
-            if (File.Exists(putanja))
-            {
-                
-                File.AppendAllText(putanja, vreme);
-            }
-
-           
-        }
+{
+    string putanja = "serveri_lista.txt";
+    string vreme = "\nVREME:" + DateTime.Now.ToString();
+    if (File.Exists(putanja))
+    {
+        File.AppendAllText(putanja, vreme);
+    }
+}
     }
 }

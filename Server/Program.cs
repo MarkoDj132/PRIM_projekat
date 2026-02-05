@@ -215,36 +215,53 @@ namespace Server
             if (File.Exists(putanja))
             {
                 string[] linije = File.ReadAllLines(putanja);
-
-                foreach (string linija in linije)
+                if (linije.Length > 0)
                 {
-                    string[] delovi = linija.Split('/');
-                    if(delovi.Length >= 2)
+                    string poslednjaLinija = linije[linije.Length - 1];
+                    if (poslednjaLinija.StartsWith("VREME:"))
                     {
-                        vreme = delovi[2];
+                        vreme = poslednjaLinija.Replace("VREME:", "");
                     }
                 }
             }
 
             List<Kanal> kanaliSaNeprocitanim = new List<Kanal>();
             List<Kanal> kanaliBezNeprocitanih = new List<Kanal>();
-            DateTime Vreme = DateTime.Parse(vreme);
-            for (int i=0; i < kanali.Count; i++)
+            DateTime Vreme;
+
+            if (vreme == "")
             {
-                DateTime t = DateTime.Parse(kanali[i].Poruke[^1].VremenskiTrenutak);
-                if(t > Vreme)
+                Vreme = DateTime.MinValue;
+            }
+            else
+            {
+                Vreme = DateTime.Parse(vreme);
+            }
+
+            for (int i = 0; i < kanali.Count; i++)
+            {
+                if (kanali[i].Poruke.Count == 0)
                 {
-                    kanaliSaNeprocitanim.Add(kanali[i]);
+                    kanaliBezNeprocitanih.Add(kanali[i]);
                 }
                 else
                 {
-                    kanaliBezNeprocitanih.Add(kanali[i]);
+                    Poruka zadnjaPoruka = kanali[i].Poruke[kanali[i].Poruke.Count - 1];
+                    DateTime t = DateTime.Parse(zadnjaPoruka.VremenskiTrenutak);
+                    if (t > Vreme)
+                    {
+                        kanaliSaNeprocitanim.Add(kanali[i]);
+                    }
+                    else
+                    {
+                        kanaliBezNeprocitanih.Add(kanali[i]);
+                    }
                 }
             }
 
             for (int i = 0; i < kanaliSaNeprocitanim.Count; i++)
             {
-                if (i > 0)
+                if (rezultat.Length > 0)
                 {
                     rezultat += ",";
                 }
@@ -252,7 +269,7 @@ namespace Server
             }
             for (int i = 0; i < kanaliBezNeprocitanih.Count; i++)
             {
-                if (i > 0)
+                if (rezultat.Length > 0)
                 {
                     rezultat += ",";
                 }
@@ -299,7 +316,7 @@ namespace Server
                         {
                             foreach(Poruka p in k.Poruke)
                             {
-                                porukeUKanalu += $"[{p.VremenskiTrenutak}]-[{p.Posiljalac}]: [{p.Sadrzaj}]\n";
+                                porukeUKanalu += $"[{p.VremenskiTrenutak}]-[{p.Posiljalac}]: {p.Sadrzaj}\n";
                             }
                             break;
                         }
